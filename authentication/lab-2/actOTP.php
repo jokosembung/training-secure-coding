@@ -13,13 +13,14 @@ if (!preg_match('/^[0-9]{4,10}$/', $otp) || !preg_match('/^[0-9]{10,15}$/', $pho
 
 
 //validate otp
+$currentDate = date("Y-m-d H:i:s");
 $query = "
     SELECT users.username FROM otp
     JOIN users ON users.id = otp.user_id
-    WHERE otp.otp = ? AND users.phone_number = ?
+    WHERE otp.otp = ? AND users.phone_number = ? AND otp.expires_at <= ?
 ";
 $stmt = $conn->prepare($query);
-$stmt->bind_param("ss", $otp, $phoneNumber);
+$stmt->bind_param("sss", $otp, $phoneNumber, $currentDate);
 $stmt->execute();
 $result = $stmt->get_result();
 $row = $result->fetch_assoc();
