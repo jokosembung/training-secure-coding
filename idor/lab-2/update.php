@@ -5,19 +5,32 @@ if ($_SERVER["REQUEST_METHOD"] != "POST") {
 }
 include '../../connection.php';
 
+if (!isset($_SESSION['user_id'])) {
+    die("Unauthorized access");
+}
+
+$loggedInUserID = $_SESSION['user_id'];
+$password = $_POST['password'] ?? '';
+
+if (!$password) {
+    $message = "Password tidak boleh kosong";
+    header("Location: $host/idor/lab-2/index.php?message=" . urlencode($message));
+    exit;
+}
+
+// Gunakan password_hash (bukan sha1)
+$hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+
 $userID = $_GET['id'];
-$password =  sha1($_POST['password']);
 
+$stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+$stmt->bind_param("si", $hashedPassword, $loggedInUserID);
 
-$queryUpdateProfile = "UPDATE users 
-                        set password = '$password' 
-                        WHERE id = '$userID'";
-
-
-if ($conn->query($queryUpdateProfile) === FALSE) {
+if ($stmt->execute()) {
+    $message = "Data profile berhasil diupdate";
+} else {
     $message = "Data profile gagal diupdate";
 }
 
-$message = "Data profile berhasil diupdate";
-header('Location: ' . $host . '/idor/lab-2/index.php?message=' . urlencode($message));
-die();
+header("Location: $host/idor/lab-2/index.php?message=" . urlencode($message));
+exit;

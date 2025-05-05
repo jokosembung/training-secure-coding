@@ -12,21 +12,27 @@ if (preg_match('/Bearer (.+)/', $authorization, $matches)) {
     exit();
 }
 
-$checkAuth = "SELECT users.id, access_login.* FROM access_login 
-                                JOIN users ON users.id = access_login.user_id
-                                WHERE access_login.token = '$token'";
+$stmt = $conn->prepare("
+    SELECT users.id, users.role FROM access_login
+    JOIN users ON users.id = access_login.user_id
+    WHERE access_login.token = ?
+");
+$stmt->bind_param("s", $token);
+$stmt->execute();
+$result = $stmt->get_result();
 
-$resultAuth = $conn->query($checkAuth);
-if ($resultAuth->num_rows == 0) {
+if ($result->num_rows === 0) {
     echo json_encode(['result' => 0]);
     exit();
 }
 
-$data = json_decode(file_get_contents('php://input'), true);
+$user = $result->fetch_assoc();
 
-$role = $data['role'];
+//$data = json_decode(file_get_contents('php://input'), true);
+//validasi role by db bukan dari inputan
+$user = $result->fetch_assoc();
 
-if ($role === 'member') {
+if ($user['role'] === 'member') {
     echo json_encode(['result' => 1, 'message' => 'Welcome to the dashboard']);
 } else {
     echo json_encode(['result' => 0]);

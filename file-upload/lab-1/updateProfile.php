@@ -6,51 +6,79 @@ if ($_SERVER["REQUEST_METHOD"] != "POST") {
 include '../../connection.php';
 
 
-$cookieValue = $_COOKIE['accessLogin'];
-$queryToken = "SELECT u.username, u.id, p.avatar 
-                FROM users u
-                JOIN access_login al ON al.user_id = u.id
-                JOIN profiles p ON p.user_id = u.id
-                WHERE al.token = '$cookieValue'";
-
-$resultQueryToken = $conn->query($queryToken);
-
-if ($resultQueryToken->num_rows == 0) {
-    $message = "Data user tidak ditemukan";
-    header('Location: ' . $host . '/file-upload/lab-1/index.php?message=' . $message);
-    die();
+$cookieValue = $_COOKIE['accessLogin'] ?? '';
+if (!$cookieValue) {
+    header('Location: ' . $host . '/file-upload/lab-1/index.php?message=' . urlencode("Unauthorized"));
+    exit();
 }
 
-$profile = mysqli_fetch_assoc($resultQueryToken);
+$stmt = $conn->prepare("
+    SELECT u.username, u.id, p.avatar 
+    FROM users u
+    JOIN access_login al ON al.user_id = u.id
+    JOIN profiles p ON p.user_id = u.id
+    WHERE al.token = ?
+");
+$stmt->bind_param("s", $cookieValue);
+$stmt->execute();
+$resultQueryToken = $stmt->get_result();
+
+if ($resultQueryToken->num_rows === 0) {
+    header('Location: ' . $host . '/file-upload/lab-1/index.php?message=' . urlencode("Data user tidak ditemukan"));
+    exit();
+}
+
+$profile = $resultQueryToken->fetch_assoc();
+$idUser = $profile['id'];
+$currentAvatar = $profile['avatar'];
+
 
 //update profile
-$fileName = $_FILES['avatar']['name'] ?? "";
 $directory = '../../assets/gallery/';
+$fileName = $_FILES['avatar']['name'] ?? '';
+$tmpName = $_FILES['avatar']['tmp_name'] ?? '';
+$avatar = $currentAvatar;
 
-if ($fileName) {
-    $newFileName = $directory . $fileName;
-    if (move_uploaded_file($_FILES['avatar']['tmp_name'], $newFileName)) {
-    unlink($directory.'/'.$profile['avatar']);
+
+
+if ($fileName && $tmpName) {
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    $fileType = mime_content_type($tmpName);
+    
+    if (!in_array($fileType, $allowedTypes)) {
+        $message = "File harus berupa gambar (jpeg/png/gif)";
+        header('Location: ' . $host . '/file-upload/lab-1/index.php?message=' . urlencode($message));
+        exit();
+    }
+
+    // Hindari duplikasi nama file, bisa pakai timestamp atau uniqid
+    $safeFileName = uniqid('avatar_') . '_' . basename($fileName);
+    $targetPath = $directory . $safeFileName;
+
+    if (move_uploaded_file($tmpName, $targetPath)) {
+        // Hapus avatar lama (jika ada dan bukan default)
+        if ($currentAvatar && file_exists($directory . $currentAvatar)) {
+            unlink($directory . $currentAvatar);
+        }
+        $avatar = $safeFileName;
     } else {
         $message = "File gagal diupload.";
+        header('Location: ' . $host . '/file-upload/lab-1/index.php?message=' . urlencode($message));
+        exit();
     }
 }
+
 $idUser = $profile['id'];
 
 $avatar = $profile['avatar'];
-if($fileName){
-    $avatar = $fileName;
+
+$updateStmt = $conn->prepare("UPDATE profiles SET avatar = ? WHERE user_id = ?");
+$updateStmt->bind_param("si", $avatar, $idUser);
+if ($updateStmt->execute()) {
+    $message = "Data profile berhasil diupdate";
+} else {
+    $message = "Gagal mengupdate profile";
 }
 
-$queryUpdateProfile = "UPDATE profiles 
-                        set avatar = '$avatar' 
-                        WHERE user_id = '$idUser'";
-
-$conn->query($queryUpdateProfile);
-if ($conn->query($queryUpdateProfile) === FALSE) {
-    $message = "Data profile gagal diupdate";
-}
-
-$message = "Data profile berhasil diupdate";
 header('Location: ' . $host . '/file-upload/lab-1/index.php?message=' . urlencode($message));
 exit();

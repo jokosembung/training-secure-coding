@@ -15,27 +15,23 @@ $password = $data['password'] ?? null;
 
 if ($email && $password) {
     // Query rentan terhadap NoSQL injection, query dibangun langsung dengan input pengguna
-    $user = $collection->findOne([
-        'email' => $email,
-        'password' => $password // Rentan terhadap NoSQL Injection
-    ]);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(["message" => "Email tidak valid!"]);
+        exit;
+    }
+
+    $user = $collection->findOne(['email' => $email]);
 
     // Memeriksa apakah pengguna ditemukan
     if ($user) {
-        echo json_encode(["message" => "Login berhasil!"]);
-    } else {
-        // Jika pengguna tidak ditemukan, cek apakah hanya password yang salah
-        $userByEmail = $collection->findOne([
-            'email' => $email
-        ]);
-
-        if ($userByEmail) {
-            // Jika email ditemukan, berarti password yang salah
-            echo json_encode(["message" => "Password tidak ditemukan!"]);
+        // Verifikasi password dengan hash yang tersimpan
+        if (password_verify($password, $user['password'])) {
+            echo json_encode(["message" => "Login berhasil!"]);
         } else {
-            // Jika email tidak ditemukan
-            echo json_encode(["message" => "Email dan password tidak ditemukan!"]);
+            echo json_encode(["message" => "Password tidak ditemukan!"]);
         }
+    } else {
+        echo json_encode(["message" => "Email tidak ditemukan!"]);
     }
 } else {
     echo json_encode(["message" => "Email dan password tidak boleh kosong!"]);
