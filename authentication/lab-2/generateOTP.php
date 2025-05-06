@@ -42,8 +42,8 @@ $insertStmt->bind_param("siss", $otp, $userID, $createdAt, $expiresAt);
 
 if ($insertStmt->execute()) {
     echo "OTP kamu adalah: $otp";
-    $_SESSION['login_'.$ipAddr.'_'.$userID]++;
-    $_SESSION['lasttime_'.$ipAddr.'_'.$userID] = time();
+    $_SESSION['otp_'.$ipAddr.'_'.$userID]++;
+    $_SESSION['lastotptime_'.$ipAddr.'_'.$userID] = time();
 } else {
     $_SESSION['error_message'] = "Gagal menghasilkan OTP. Silakan coba lagi.";
     header('Location: ' . $host . '/authentication/lab-2');
