@@ -7,6 +7,12 @@ $ipAddr = $_SERVER['REMOTE_ADDR'];
 $attempt= 5;
 $waktu = 1 * 60; //dalam menit
 
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $_SESSION['error_message'] = "Format email tidak valid.";
+    header('Location: ' . $host . '/authentication/lab-1/');
+    exit;
+}
+
 // inisialisasi
 if (!isset($_SESSION['login_'.$ipAddr.'_'.$email])){
     $_SESSION['login_'.$ipAddr.'_'.$email] = 0;
@@ -24,11 +30,6 @@ if ($_SESSION['login_'.$ipAddr.'_'.$email] >= $attempt){
     $_SESSION['login_'.$ipAddr.'_'.$email] = 0;
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $_SESSION['error_message'] = "Format email tidak valid.";
-    header('Location: ' . $host . '/authentication/lab-1/');
-    exit;
-}
 
 
 
