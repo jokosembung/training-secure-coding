@@ -17,7 +17,7 @@ $currentDate = date("Y-m-d H:i:s");
 $query = "
     SELECT users.username FROM otp
     JOIN users ON users.id = otp.user_id
-    WHERE otp.otp = ? AND users.phone_number = ? AND otp.expires_at <= ?
+    WHERE otp.otp = ? AND users.phone_number = ? AND otp.expires_at >= ?
 ";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("sss", $otp, $phoneNumber, $currentDate);
