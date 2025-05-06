@@ -26,8 +26,6 @@ if ($result->num_rows === 0) {
     exit();
 }
 
-$user = $result->fetch_assoc();
-
 //$data = json_decode(file_get_contents('php://input'), true);
 //validasi role by db bukan dari inputan
 $user = $result->fetch_assoc();
